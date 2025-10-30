@@ -1,9 +1,13 @@
 {
-  "platforms": ["apple", "android", "web"],
+  "platforms": [
+    "apple"
+  ],
   "apple": {
-    "modules": ["ReactNativePushkitModule"]
-  },
-  "android": {
-    "modules": ["expo.modules.pushkit.ReactNativePushkitModule"]
+    "modules": [
+      "ReactNativePushkitModule"
+    ],
+    "appDelegateSubscribers": [
+      "PushKitAppDelegateSubscriber"
+    ]
   }
 }

@@ -1,48 +1,72 @@
 import ExpoModulesCore
 
 public class ReactNativePushkitModule: Module {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
   public func definition() -> ModuleDefinition {
-    // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
-    // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
-    // The module will be accessible from `requireNativeModule('ReactNativePushkit')` in JavaScript.
     Name("ReactNativePushkit")
 
-    // Defines constant property on the module.
-    Constant("PI") {
-      Double.pi
+    // Define the events that can be sent to JavaScript.
+    Events("onToken", "onPayload", "onInvalidateToken", "onError") // <-- Add "onError"
+
+    // This is called when the first JavaScript listener is added.
+    // We'll start observing our internal notifications here.
+    OnStartObserving {
+      NotificationCenter.default.addObserver(self, selector: #selector(self.onNewToken), name: pushKitTokenNotification, object: nil)
+      NotificationCenter.default.addObserver(self, selector: #selector(self.onNewPayload), name: pushKitPayloadNotification, object: nil)
+      NotificationCenter.default.addObserver(self, selector: #selector(self.onInvalidateToken), name: pushKitInvalidateTokenNotification, object: nil)
+      NotificationCenter.default.addObserver(self, selector: #selector(self.onRegistrationError), name: pushKitErrorNotification, object: nil) // <-- Add this observer
     }
 
-    // Defines event names that the module can send to JavaScript.
-    Events("onChange")
-
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
-      return "Hello world! 👋"
+    // This is called when the last JavaScript listener is removed.
+    // We'll stop observing here to prevent memory leaks.
+    OnStopObserving {
+      NotificationCenter.default.removeObserver(self)
     }
+  }
 
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
-    AsyncFunction("setValueAsync") { (value: String) in
-      // Send an event to JavaScript.
-      self.sendEvent("onChange", [
-        "value": value
-      ])
+  // MARK: - Notification Handlers
+
+  @objc
+  private func onNewToken(notification: Notification) {
+    guard let userInfo = notification.userInfo, let token = userInfo["token"] else {
+      return
     }
-
-    // Enables the module to be used as a native view. Definition components that are accepted as part of the
-    // view definition: Prop, Events.
-    View(ReactNativePushkitView.self) {
-      // Defines a setter for the `url` prop.
-      Prop("url") { (view: ReactNativePushkitView, url: URL) in
-        if view.webView.url != url {
-          view.webView.load(URLRequest(url: url))
-        }
-      }
-
-      Events("onLoad")
+    // Send the 'onToken' event to JavaScript.
+    self.sendEvent("onToken", [
+      "token": token
+    ])
+  }
+    
+  @objc
+  private func onNewPayload(notification: Notification) {
+    guard let userInfo = notification.userInfo, let payload = userInfo["payload"] else {
+      return
     }
+    // Send the 'onPayload' event to JavaScript.
+    self.sendEvent("onPayload", [
+      "payload": payload
+    ])
+  }
+
+  @objc
+  private func onInvalidateToken(notification: Notification) {
+    guard let userInfo = notification.userInfo, let type = userInfo["type"] else {
+      return
+    }
+    // Send the 'onInvalidateToken' event to JavaScript.
+    self.sendEvent("onInvalidateToken", [
+        "type": type
+    ])
+  }
+    
+  // --- ADD THIS NEW METHOD ---
+  @objc
+  private func onRegistrationError(notification: Notification) {
+    guard let userInfo = notification.userInfo, let error = userInfo["error"] as? String else {
+      return
+    }
+    // Send the 'onError' event to JavaScript.
+    self.sendEvent("onError", [
+        "error": error
+    ])
   }
 }

@@ -1,12 +1,7 @@
 import { NativeModule, requireNativeModule } from 'expo';
-
 import { ReactNativePushkitModuleEvents } from './ReactNativePushkit.types';
 
-declare class ReactNativePushkitModule extends NativeModule<ReactNativePushkitModuleEvents> {
-  PI: number;
-  hello(): string;
-  setValueAsync(value: string): Promise<void>;
-}
+// This is the raw native module interface. It's used internally by the library.
+declare class ReactNativePushkitModule extends NativeModule<ReactNativePushkitModuleEvents> {}
 
-// This call loads the native module object from the JSI.
 export default requireNativeModule<ReactNativePushkitModule>('ReactNativePushkit');
