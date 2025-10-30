@@ -4,6 +4,12 @@
   "description": "React Native implementation of the apple pushkit functionality build with nitro modules",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "files": [
+    "build",
+    "ios",
+    "expo-module.config.json",
+    "README.md"
+  ],
   "scripts": {
     "build": "expo-module build",
     "clean": "expo-module clean",
