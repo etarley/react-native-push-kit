@@ -4,7 +4,8 @@ import {
   type PayloadPayload,
   type TokenPayload,
   type InvalidateTokenPayload,
-  type ErrorPayload, // <-- Import this
+  type ErrorPayload,
+  type PushType,
 } from './ReactNativePushkit.types';
 
 /**
@@ -44,6 +45,16 @@ export function addInvalidateTokenListener(
  */
 export function addErrorListener(listener: (event: ErrorPayload) => void): EventSubscription {
   return ReactNativePushkitModule.addListener('onError', listener);
+}
+
+/**
+ * Registers the app for the specified PushKit notification types.
+ * This function must be called for the app to receive any PushKit notifications.
+ * It should typically be called once when your app initializes.
+ * @param types An array of push types to register for, e.g., ['voip', 'fileProvider'].
+ */
+export function register(types: PushType[]): Promise<void> {
+  return ReactNativePushkitModule.register(types);
 }
 
 // Re-export all the types.

@@ -27,6 +27,8 @@ export type ErrorPayload = {
   error: string;
 };
 
+export type PushType = 'voip' | 'fileProvider';
+
 /**
  * Defines the events that the native module can emit.
  */

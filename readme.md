@@ -5,13 +5,14 @@
 [![NPM Version](https://img.shields.io/npm/v/react-native-pushkit.svg)](https://www.npmjs.com/package/react-native-pushkit)
 [![License](https://img.shields.io/npm/l/react-native-pushkit.svg)](https://github.com/etarley/react-native-pushkit/blob/main/LICENSE)
 
-A React Native library for handling Apple's PushKit VoIP notifications, built with the modern Expo Modules API.
+A React Native library for handling Apple's PushKit notifications for VoIP, File Provider, and other services, built with the modern Expo Modules API.
 
-This module provides a simple and type-safe way to receive PushKit tokens and incoming VoIP push payloads in your React Native or Expo application.
+This module provides a simple and type-safe way to receive high-priority PushKit tokens and incoming payloads in your React Native or Expo application, even when the app is in the background or terminated.
 
 ## Features
 
 -   ✅ **Modern API:** Built with the latest Expo Modules API.
+-   ✅ **Multi-Type Support:** Register for `voip`, `fileProvider`, or other PushKit types.
 -   ✅ **Fully Typed:** Written in TypeScript for a great developer experience.
 -   ✅ **Event-Driven:** Use simple listeners to subscribe to PushKit events.
 -   ✅ **Automatic Setup:** Expo Autolinking handles the native module integration.
@@ -27,49 +28,62 @@ PushKit is an Apple-specific framework and is only available on iOS.
 
 ## Installation
 
-This library requires `expo-notifications` as a peer dependency.
-
 ```bash
-npm install react-native-pushkit expo-notifications
+npm install react-native-pushkit
 ```
 
 Or if you use Yarn:
 
 ```bash
-yarn add react-native-pushkit expo-notifications
+yarn add react-native-pushkit
 ```
 
 ## Native Configuration (Required)
 
-After installing the package, you need to configure background remote notifications in your `app.json` or `app.config.js` using the `expo-notifications` config plugin:
+After installing the package, you need to configure the native iOS project to enable PushKit capabilities.
 
-```json
-{
-  "expo": {
-    "plugins": [
-      [
-        "expo-notifications",
-        {
-          "enableBackgroundRemoteNotifications": true
-        }
-      ]
-    ]
-  }
-}
-```
+1.  Make sure you have generated the native `ios` directory:
+    ```bash
+    npx expo prebuild --platform ios
+    ```
 
-> **Note:** This configuration is required for PushKit to work. The `expo-notifications` plugin automatically handles the necessary iOS capabilities and background modes.
+2.  Open your project's `ios/{YourProjectName}.xcworkspace` file in Xcode.
+
+3.  In Xcode, select your project from the file navigator, then select your main app **Target**.
+
+4.  Go to the **"Signing & Capabilities"** tab.
+
+5.  Click the **"+ Capability"** button.
+
+6.  Add the **"Push Notifications"** capability.
+
+7.  Click the **"+ Capability"** button again.
+
+8.  Add the **"Background Modes"** capability.
+
+9.  In the "Background Modes" section, check the following boxes:
+    *   ✅ **Remote notifications**
+    *   ✅ **Voice over IP** (Only if you are using the `voip` push type)
+
+Your configuration should look like this:
+
+<img width="700" alt="Xcode Capabilities for PushKit" src="https://user-images.githubusercontent.com/1319082/220864312-09c31b5c-4d3b-483d-9d7a-18f15ab81d2f.png">
+
+> **Note:** These capabilities are required by Apple. Your app will not receive PushKit notifications without them.
 
 ## API Usage
 
-The library is event-based. You can add listeners to subscribe to token updates, incoming payloads, and errors.
+To begin receiving PushKit notifications, you must first call the `register()` function with the push types you want to handle. This should typically be done once when your app starts.
+
+After registering, you can add listeners to subscribe to token updates, incoming payloads, and errors.
 
 Here is a complete example of how to use the library in a React component.
 
 ```tsx
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, Text, View, StyleSheet } from 'react-native';
+import { SafeAreaView, Text, View, StyleSheet, Button } from 'react-native';
 import {
+  register,
   addTokenListener,
   addPayloadListener,
   addErrorListener,
@@ -79,27 +93,25 @@ import {
 } from 'react-native-pushkit';
 
 export default function App() {
+  const [isRegistered, setIsRegistered] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [lastPayload, setLastPayload] = useState<Record<string, any> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // This listener is called when the app receives a new PushKit token.
-    // You should send this token to your server to send VoIP pushes.
+    // Set up listeners for PushKit events.
     const tokenSubscription = addTokenListener((event: TokenPayload) => {
       console.log('Received PushKit Token:', event.token);
       setToken(event.token);
       setError(null); // Clear previous errors on success.
     });
 
-    // This listener is called when a new PushKit payload is received.
     const payloadSubscription = addPayloadListener((event: PayloadPayload) => {
       console.log('Received PushKit Payload:', event.payload);
       setLastPayload(event.payload);
-      // Here you would typically trigger your incoming call UI.
+      // Here you would handle the incoming payload, e.g., trigger an incoming call UI.
     });
 
-    // This listener is called if PushKit fails to register.
     const errorSubscription = addErrorListener((event: ErrorPayload) => {
       console.error('PushKit Registration Error:', event.error);
       setError(event.error);
@@ -113,18 +125,44 @@ export default function App() {
     };
   }, []);
 
+  const handleRegister = async () => {
+    try {
+      // Register for the push types you want to handle.
+      // This must be called for the app to receive any PushKit notifications.
+      await register(['voip']);
+      setIsRegistered(true);
+      console.log('Successfully registered for VoIP pushes.');
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {error && <Text style={styles.errorText}>Error: {error}</Text>}
-      <Text style={styles.title}>PushKit Token</Text>
-      <Text style={styles.token} selectable>
-        {token ?? 'Waiting for token...'}
-      </Text>
 
-      <Text style={styles.title}>Last Received Payload</Text>
-      <Text style={styles.payload}>
-        {lastPayload ? JSON.stringify(lastPayload, null, 2) : 'No payload received yet.'}
-      </Text>
+      <View style={styles.group}>
+        <Text style={styles.title}>Registration</Text>
+        {!isRegistered ? (
+          <Button title="Register for VoIP Pushes" onPress={handleRegister} />
+        ) : (
+          <Text>Registered for PushKit notifications!</Text>
+        )}
+      </View>
+      
+      <View style={styles.group}>
+        <Text style={styles.title}>PushKit Token</Text>
+        <Text style={styles.token} selectable>
+          {token ?? 'Waiting for token...'}
+        </Text>
+      </View>
+
+      <View style={styles.group}>
+        <Text style={styles.title}>Last Received Payload</Text>
+        <Text style={styles.payload}>
+          {lastPayload ? JSON.stringify(lastPayload, null, 2) : 'No payload received yet.'}
+        </Text>
+      </View>
     </SafeAreaView>
   );
 }
@@ -132,16 +170,28 @@ export default function App() {
 // Add your styles here...
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f5f5f5' },
-  title: { fontSize: 18, fontWeight: 'bold', marginTop: 20 },
-  errorText: { color: 'red', marginBottom: 10 },
-  token: { fontFamily: 'Menlo', marginTop: 10, backgroundColor: '#fff', padding: 10, borderRadius: 5 },
-  payload: { fontFamily: 'Menlo', marginTop: 10, backgroundColor: '#fff', padding: 10, borderRadius: 5 },
+  group: { backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 20 },
+  title: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  errorText: { color: 'red', marginBottom: 10, fontWeight: 'bold' },
+  token: { fontFamily: 'Menlo' },
+  payload: { fontFamily: 'Menlo' },
 });
 ```
 
 ## API Reference
 
 ### Functions
+
+#### `register(types)`
+
+Registers the app for the specified PushKit notification types. **This function must be called** for the app to receive any PushKit notifications.
+
+-   **`types: PushType[]`**: An array of push types you want to register for.
+-   **Returns:** `Promise<void>`
+
+Example: `await register(['voip', 'fileProvider']);`
+
+---
 
 #### `addTokenListener(listener)`
 
@@ -150,12 +200,16 @@ Adds a listener that will be called when a new PushKit token is registered.
 -   **`listener: (event: TokenPayload) => void`**: The function to execute.
 -   **Returns:** `EventSubscription` - An object with a `remove()` method to unsubscribe.
 
+---
+
 #### `addPayloadListener(listener)`
 
-Adds a listener that will be called when a new PushKit payload is received.
+Adds a listener that will be called when a new PushKit payload is received. This works whether the app is in the foreground, background, or was just launched by the push.
 
 -   **`listener: (event: PayloadPayload) => void`**: The function to execute.
 -   **Returns:** `EventSubscription` - An object with a `remove()` method to unsubscribe.
+
+---
 
 #### `addInvalidateTokenListener(listener)`
 
@@ -164,9 +218,11 @@ Adds a listener that will be called when the PushKit token is invalidated by the
 -   **`listener: (event: InvalidateTokenPayload) => void`**: The function to execute.
 -   **Returns:** `EventSubscription` - An object with a `remove()` method to unsubscribe.
 
+---
+
 #### `addErrorListener(listener)`
 
-Adds a listener that will be called if PushKit fails to register for pushes.
+Adds a listener that will be called if PushKit fails to register for pushes. This is useful for debugging missing entitlements or other configuration issues.
 
 -   **`listener: (event: ErrorPayload) => void`**: The function to execute.
 -   **Returns:** `EventSubscription` - An object with a `remove()` method to unsubscribe.
@@ -174,6 +230,9 @@ Adds a listener that will be called if PushKit fails to register for pushes.
 ### Types
 
 ```ts
+// The push types you can register for.
+export type PushType = 'voip' | 'fileProvider';
+
 // The payload for the onToken event.
 export type TokenPayload = {
   token: string;
@@ -186,7 +245,7 @@ export type PayloadPayload = {
 
 // The payload for the onInvalidateToken event.
 export type InvalidateTokenPayload = {
-  type: string; // e.g., 'voip'
+  type: string;
 };
 
 // The payload for the onError event.
@@ -202,8 +261,9 @@ To run the example app:
 1.  Clone the repository.
 2.  Navigate to the `example` directory: `cd example`
 3.  Install dependencies: `npm install`
-4.  Configure background notifications in `app.json` (see [Native Configuration](#native-configuration-required))
-5.  Run on iOS: `npx expo run:ios`
+4.  Run on iOS: `npx expo run:ios`
+
+Remember to follow the [Native Configuration](#native-configuration-required) steps for the example app's Xcode project.
 
 ## Contributing
 

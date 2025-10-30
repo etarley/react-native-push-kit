@@ -5,23 +5,39 @@ import PushKit
 internal let pushKitTokenNotification = Notification.Name("expo.modules.pushkit.token")
 internal let pushKitPayloadNotification = Notification.Name("expo.modules.pushkit.payload")
 internal let pushKitInvalidateTokenNotification = Notification.Name("expo.modules.pushkit.invalidate_token")
-internal let pushKitErrorNotification = Notification.Name("expo.modules.pushkit.error") // <-- Add this
+internal let pushKitErrorNotification = Notification.Name("expo.modules.pushkit.error") 
 
 public class PushKitAppDelegateSubscriber: ExpoAppDelegateSubscriber, PKPushRegistryDelegate {
+    // Singleton instance
+    static let shared = PushKitAppDelegateSubscriber()
+    
   private var pushRegistry: PKPushRegistry?
 
-  public func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-    // It's recommended to create the push registry on a background queue.
+  // Initialize the push registry
+  required public override init() {
+    super.init()
     let queue = DispatchQueue(label: "dev.expo.pushkit")
     pushRegistry = PKPushRegistry(queue: queue)
     pushRegistry?.delegate = self
-    
-    // Register for VoIP pushes. This could be made configurable in the future.
-    pushRegistry?.desiredPushTypes = [.voIP]
+  }
+
+ public func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
     return true
   }
 
-  // MARK: - PKPushRegistryDelegate
+ public func register(for types: [String]) {
+    var desiredTypes = Set<PKPushType>()
+    for type in types {
+        if type == "voip" {
+            desiredTypes.insert(.voIP)
+        } else if type == "fileProvider" {
+            desiredTypes.insert(.fileProvider)
+        }
+    }
+    if !desiredTypes.isEmpty {
+        pushRegistry?.desiredPushTypes = desiredTypes
+    }
+  }
 
   // This delegate method is called with a new PushKit token.
   public func pushRegistry(_ registry: PKPushRegistry, didUpdate pushCredentials: PKPushCredentials, for type: PKPushType) {
@@ -45,8 +61,6 @@ public class PushKitAppDelegateSubscriber: ExpoAppDelegateSubscriber, PKPushRegi
       userInfo: ["payload": payload.dictionaryPayload, "type": type.rawValue]
     )
     
-    // CRITICAL: You must call the completion handler to acknowledge receipt of the push.
-    // If you don't, the system may terminate your app.
     completion()
   }
 
@@ -59,8 +73,6 @@ public class PushKitAppDelegateSubscriber: ExpoAppDelegateSubscriber, PKPushRegi
     )
   }
     
-  // --- ADD THIS NEW METHOD ---
-  // This delegate method is called when registration fails.
   public func pushRegistry(_ registry: PKPushRegistry, didFailToRegisterFor type: PKPushType, withError error: Error) {
     NotificationCenter.default.post(
         name: pushKitErrorNotification,

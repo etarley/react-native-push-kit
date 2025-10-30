@@ -5,7 +5,11 @@ public class ReactNativePushkitModule: Module {
     Name("ReactNativePushkit")
 
     // Define the events that can be sent to JavaScript.
-    Events("onToken", "onPayload", "onInvalidateToken", "onError") // <-- Add "onError"
+    Events("onToken", "onPayload", "onInvalidateToken", "onError")
+
+      AsyncFunction("register") { (types: [String]) in
+        PushKitAppDelegateSubscriber.shared.register(for: types)
+      }
 
     // This is called when the first JavaScript listener is added.
     // We'll start observing our internal notifications here.

@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, Text, View, StyleSheet } from 'react-native';
+import { SafeAreaView, ScrollView, Text, View, StyleSheet, Button } from 'react-native';
 import {
   addTokenListener,
   addPayloadListener,
-  addErrorListener, // <-- Import this
+  addErrorListener,
+  register,
   type TokenPayload,
   type PayloadPayload,
-  type ErrorPayload, // <-- Import this
+  type ErrorPayload, 
 } from 'react-native-pushkit';
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null);
   const [payload, setPayload] = useState<Record<string, any> | null>(null);
-  const [error, setError] = useState<string | null>(null); // <-- Add error state
+  const [error, setError] = useState<string | null>(null);  
+  const [isRegistered, setIsRegistered] = useState<boolean>(false);
+
+  
 
   useEffect(() => {
     // Listen for new PushKit tokens
@@ -38,9 +42,20 @@ export default function App() {
     return () => {
       tokenSubscription.remove();
       payloadSubscription.remove();
-      errorSubscription.remove(); // <-- Clean up error listener
+      errorSubscription.remove(); 
     };
   }, []);
+
+  const handleRegister = async () => {
+    try {
+      // Register for VoIP pushes when the button is pressed.
+      await register(['voip']);
+      setIsRegistered(true);
+      console.log('Successfully registered for VoIP pushes.');
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -60,6 +75,12 @@ export default function App() {
         <Group name="Last Received Payload">
           <Text style={styles.text}>{payload ? JSON.stringify(payload, null, 2) : 'No payload received yet.'}</Text>
         </Group>
+
+        <Group name="Is Registered">
+          <Text style={styles.text}>{isRegistered ? 'Yes' : 'No'}</Text>
+        </Group>
+
+        <Button title="Register" onPress={handleRegister} />
       </ScrollView>
     </SafeAreaView>
   );
