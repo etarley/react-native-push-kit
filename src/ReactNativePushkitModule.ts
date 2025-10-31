@@ -3,7 +3,7 @@
 // Metro bundler will automatically resolve to .ios.ts or .android.ts at build time
 
 import { type EventSubscription } from 'expo-modules-core';
-import { ReactNativePushkitModuleEvents, type PushType } from './ReactNativePushkit.types';
+import { ReactNativePushkitModuleEvents, type IosPushType } from './ReactNativePushkit.types';
 
 // For TypeScript: Export the type so index.ts can import from here
 // At runtime, Metro bundler will resolve to the platform-specific file
@@ -13,20 +13,15 @@ type ReactNativePushkitModuleType = {
     listener: ReactNativePushkitModuleEvents[EventName]
     
   ): EventSubscription;
-  register(types: PushType[]): Promise<void>;
+  register(types: IosPushType[]): Promise<void>;
 };
 
 // Import the platform-specific module
 // Metro bundler will automatically resolve this to .ios.ts or .android.ts
 // We use a dynamic import approach that TypeScript can understand
-import ReactNativePushkitModuleIOS from './ReactNativePushkitModule.ios';
-import ReactNativePushkitModuleAndroid from './ReactNativePushkitModule.android';
+import ReactNativePushkitModuleIOS from './ReactNativePushkitModule';
 
-import { Platform } from 'react-native';
-
-const ReactNativePushkitModule: ReactNativePushkitModuleType = Platform.OS === 'ios' 
-  ? ReactNativePushkitModuleIOS 
-  : ReactNativePushkitModuleAndroid;
+const ReactNativePushkitModule: ReactNativePushkitModuleType = ReactNativePushkitModuleIOS 
 
 export default ReactNativePushkitModule;
 

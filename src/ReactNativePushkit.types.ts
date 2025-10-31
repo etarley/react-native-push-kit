@@ -27,7 +27,7 @@ export type ErrorPayload = {
   error: string;
 };
 
-export type PushType = 'voip' | 'fileProvider';
+export type IosPushType = 'voip' | 'fileProvider';
 
 /**
  * Defines the events that the native module can emit.
@@ -36,5 +36,5 @@ export type ReactNativePushkitModuleEvents = {
   onToken: (event: TokenPayload) => void;
   onPayload: (event: PayloadPayload) => void;
   onInvalidateToken: (event: InvalidateTokenPayload) => void;
-  onError: (event: ErrorPayload) => void; // <-- Add this
+  onError: (event: ErrorPayload) => void; 
 };

@@ -15,6 +15,20 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "expo.modules.pushkit.example"
-    }
+    },
+    "android": {
+      "package": "expo.modules.pushkit.example"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "ndkVersion": "26.1.10909125",
+            "cppFlags": "-std=c++20"
+          }
+        }
+      ]
+    ]
   }
 }
