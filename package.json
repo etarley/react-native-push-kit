@@ -1,6 +1,6 @@
 {
   "name": "react-native-pushkit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React Native implementation of the apple pushkit functionality build with nitro modules",
   "main": "build/index.js",
   "types": "build/index.d.ts",
